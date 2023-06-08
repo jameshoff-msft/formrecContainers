@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "formrec.fullname" . }}
+  labels:
+    {{- include "formrec.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: 8443
+      targetPort: 8443
+      protocol: TCP
+      name: https
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "formrec.selectorLabels" . | nindent 4 }}

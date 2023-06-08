@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "formrec.fullname" . }}
+  labels:
+    {{- include "formrec.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "formrec.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "formrec.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "formrec.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        - name: volume
+          persistentVolumeClaim:
+            claimName: my-azurefile
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          volumeMounts:
+              - mountPath: "/shared"
+                name: volume
+              - mountPath: "/logs"
+                name: volume
+          env:
+            - name: EULA
+              value: "accept"
+            - name: CustomFormRecognizer__ContainerPhase
+              value: "All"
+            - name: CustomFormRecognizer__LayoutAnalyzeUri
+              value: "http://layout-formrec-layout:8080/formrecognizer/v2.1/layout/analyze"
+            - name: Queue__RabbitMQ__HostName
+              value: "definition"
+            - name: Queue__RabbitMQ__Port
+              value: "5672"
+            - name: "Logging__Console__LogLevel__Default"
+              value: "Information"
+            - name: SharedRootFolder
+              value: "/shared"
+            - name: Mounts__Shared
+              value: "/shared"     
+            - name: Mounts__Output
+              value: "/logs"                   
+            - name: billing
+              valueFrom:
+                  secretKeyRef:
+                    name: formrec-secret
+                    key: Billing
+            - name: apikey
+              valueFrom:
+                  secretKeyRef:
+                    name: formrec-secret
+                    key: ApiKey
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          # livenessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: http
+          # readinessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "formrec.fullname" . }}
+  labels:
+    {{- include "formrec.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "formrec.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "formrec.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "formrec.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      # volumes:
+      #   - name: volume
+      #     hostPath:
+      #       path: /data
+      #       type: DirectoryOrCreate
+          # persistentVolumeClaim:
+          #   claimName: my-azurefile
+      volumes:
+        - name: volume
+          persistentVolumeClaim:
+            claimName: my-azurefile
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          volumeMounts:
+              - mountPath: "/shared"
+                name: volume
+              - mountPath: "/logs"
+                name: volume
+          env:
+            - name: HTTPS
+              value: "true"
+            - name: INVOICE_HOSTNAME
+              value: "invoice-formrec-invoice"
+            - name: INVOICE_PORT
+              value: "8080"
+            - name: RECEIPT_HOSTNAME
+              value: "receipt-formrec-receipt"
+            - name: RECEIPT_PORT
+              value: "8080"
+            - name: ID_HOSTNAME
+              value: "id-formrec-id"
+            - name: ID_PORT
+              value: "8080"
+            - name: BUSINESSCARD_HOSTNAME
+              value: "businesscard-formrec-businesscard"
+            - name: BUSINESSCARD_PORT
+              value: "8080"
+            - name: LAYOUT_HOSTNAME
+              value: "layout-formrec-layout"
+            - name: LAYOUT_PORT
+              value: "8080"
+            - name: "Logging__Console__LogLevel__Default"
+              value: "Information"  
+            - name: SharedRootFolder
+              value: "/shared"
+            - name: Mounts__Shared
+              value: "/shared"     
+            - name: Mounts__Output
+              value: "/logs"  
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # livenessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: http
+          # readinessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

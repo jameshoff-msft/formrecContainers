@@ -1,0 +1,1 @@
+Link to the [**Delivery Guide**](https://microsoft.sharepoint.com/:p:/t/CSUDataAICommunityIPLibrary/EYOadPrFND5KtR5M0Xxw-M4BlNVIvuDR9zNiMDsZ8qB4QA?e=ecz7Nt)

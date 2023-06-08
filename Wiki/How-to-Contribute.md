@@ -1,0 +1,1 @@
+A Community IP (CIP) Delivery Guide should be provided for any CIP offerings. A CIP Delivery Guide should be detailed enough to provide a delivery engineer pertinent guidance in order to be able to successfully deliver the CIP.
